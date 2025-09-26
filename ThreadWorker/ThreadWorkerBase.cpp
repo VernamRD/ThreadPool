@@ -124,8 +124,9 @@ void threadpool::ThreadWorkerBase::create_thread()
 void threadpool::ThreadWorkerBase::destroy_thread()
 {
     _ASSERT_EXPR(b_exist_thread, "Attempted destroy not exist thread");
-    
-    IThreadLogger::get().Verbose(std::format("ThreadWorker: WorkerThread({}) destroying thread...", thread.get_id()));
+
+    std::thread::id cached_thread_id = thread.get_id();
+    IThreadLogger::get().Verbose(std::format("ThreadWorker: WorkerThread({}) destroying thread...", cached_thread_id));
     
     if (!is_want_to_stop())
     {
@@ -135,7 +136,7 @@ void threadpool::ThreadWorkerBase::destroy_thread()
     if (thread.joinable())
     {
         thread.join();
-        IThreadLogger::get().Log(std::format("ThreadWorker: WorkerThread({}) thread destroyed success", thread.get_id()));
+        IThreadLogger::get().Log(std::format("ThreadWorker: WorkerThread({}) thread destroyed success", cached_thread_id));
         b_exist_thread = false;
     }
 }
