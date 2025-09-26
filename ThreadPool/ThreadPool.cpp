@@ -47,7 +47,7 @@ void threadpool::ThreadPool::stop_all_immediately()
     }
 }
 
-void threadpool::ThreadPool::add_worker(std::shared_ptr<ThreadWorkerBase> new_worker)
+void threadpool::ThreadPool::add_worker(const std::shared_ptr<ThreadWorkerBase>& new_worker)
 {
     workers.push_back(new_worker);
 }

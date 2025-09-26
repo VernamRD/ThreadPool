@@ -19,7 +19,7 @@ namespace threadpool
         virtual void stop_all_immediately() override;
 
     private:
-        void add_worker(std::shared_ptr<ThreadWorkerBase> new_worker);
+        void add_worker(const std::shared_ptr<ThreadWorkerBase>& new_worker);
         
         std::vector<std::shared_ptr<ThreadWorkerBase>> workers;
     };
