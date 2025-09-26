@@ -1,30 +1,32 @@
 #include "ThreadWorkerBase.h"
 
+#include "../ThreadLogger/IThreadLogger.h"
+
 threadpool::ThreadWorkerBase::ThreadWorkerBase(ThreadWorkerInitData& init_data)
     : b_running(false),
-      b_want_stop(false)
+      b_want_stop(false),
+      b_exist_thread(false)
 {
 }
 
 threadpool::ThreadWorkerBase::~ThreadWorkerBase()
 {
-    stop_immediately();
+    if (b_exist_thread)
+    {
+        stop_immediately();   
+    }
 }
 
-std::expected<std::shared_ptr<threadpool::ThreadWorkerBase>, std::string> threadpool::ThreadWorkerBase::create(
-    ThreadWorkerInitData& init_data)
+std::shared_ptr<threadpool::ThreadWorkerBase> threadpool::ThreadWorkerBase::create(ThreadWorkerInitData& init_data)
 {
-    auto new_worker = std::make_shared<ThreadWorkerBase>(init_data);
-    if (new_worker == nullptr) return std::unexpected("Couldn't allocate memory");
-
-    return new_worker;
+    return std::make_shared<ThreadWorkerBase>(init_data);
 }
 
 std::expected<bool, std::string> threadpool::ThreadWorkerBase::start()
 {
     if (b_running) return std::unexpected("Thread worker already running");
 
-    thread = std::thread(&ThreadWorkerBase::run, this);
+    create_thread();
 
     initialize_on_main_thread();
 
@@ -43,15 +45,17 @@ void threadpool::ThreadWorkerBase::stop_immediately()
 {
     _ASSERT_EXPR(std::this_thread::get_id() != thread.get_id(), "Attempted stop_immediately from same thread");
 
-    if (!b_want_stop)
+    if (b_running)
     {
-        stop();
+        IThreadLogger::get().Verbose(std::format("ThreadWorker: Requested immediately stop for WorkerThread({})", thread.get_id()));
     }
 
-    if (thread.joinable())
-    {
-        thread.join();
-    }
+    destroy_thread();
+}
+
+std::thread::id threadpool::ThreadWorkerBase::get_id() const
+{
+    return thread.get_id();
 }
 
 bool threadpool::ThreadWorkerBase::is_want_to_stop() const
@@ -70,12 +74,20 @@ void threadpool::ThreadWorkerBase::run()
     thread_event.wait();
 
     bool b_initialized = initialize().value_or(false);
-    if (!b_initialized) return;
+    if (!b_initialized)
+    {
+        IThreadLogger::get().Warning(std::format("ThreadWorker: WorkerThread({}) couldn't initialized", thread.get_id()));
+        return;
+    }
 
     if (!is_want_to_stop())
     {
+        IThreadLogger::get().Verbose(std::format("ThreadWorker: WorkerThread({}) in run", thread.get_id()));
+
         int32_t result = main();
     }
+
+    IThreadLogger::get().Verbose(std::format("ThreadWorker: WorkerThread({}) complete", thread.get_id()));
 
     deinitialize();
 }
@@ -97,4 +109,34 @@ int32_t threadpool::ThreadWorkerBase::main()
 
 void threadpool::ThreadWorkerBase::deinitialize()
 {
+    IThreadLogger::get().Verbose(std::format("ThreadWorker: WorkerThread({}) deinitializing", thread.get_id()));
+    b_running = false;
 }
+
+void threadpool::ThreadWorkerBase::create_thread()
+{
+    _ASSERT_EXPR(!b_exist_thread, "Attempted create thread when already exist");
+
+    thread = std::thread(&ThreadWorkerBase::run, this);
+    b_exist_thread = true;
+}
+
+void threadpool::ThreadWorkerBase::destroy_thread()
+{
+    _ASSERT_EXPR(b_exist_thread, "Attempted destroy not exist thread");
+    
+    IThreadLogger::get().Verbose(std::format("ThreadWorker: WorkerThread({}) destroying thread...", thread.get_id()));
+    
+    if (!is_want_to_stop())
+    {
+        b_want_stop = true;
+    }
+    
+    if (thread.joinable())
+    {
+        thread.join();
+        IThreadLogger::get().Log(std::format("ThreadWorker: WorkerThread({}) thread destroyed success", thread.get_id()));
+        b_exist_thread = false;
+    }
+}
+

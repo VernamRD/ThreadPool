@@ -13,6 +13,7 @@ namespace threadpool
         virtual std::expected<bool, std::string> start() = 0;
         virtual void stop() = 0;
 
+        virtual std::thread::id get_id() const = 0;
         virtual bool is_want_to_stop() const = 0;
 
     protected:

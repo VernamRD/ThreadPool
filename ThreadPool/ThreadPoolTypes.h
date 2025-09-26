@@ -15,8 +15,8 @@ namespace threadpool
     
     struct ThreadPoolInitData
     {
-        std::string name; 
-        int32_t numThreads = 5;
+        std::string pool_name = "unnamed"; 
+        int32_t numThreads = 1;
     };
 
     class IThreadPool

@@ -3,20 +3,26 @@
 #include "../ThreadLogger/IThreadLogger.h"
 #include "../ThreadWorker/ThreadWorkerBase.h"
 
-std::shared_ptr<threadpool::IThreadPool> threadpool::ThreadPool::initialize(const threadpool::ThreadPoolInitData& init_data)
+std::shared_ptr<threadpool::IThreadPool> threadpool::ThreadPool::initialize(
+    const threadpool::ThreadPoolInitData& init_data)
 {
-    IThreadLogger::get().Log("Initialize ThreadPool - " + init_data.name);
-    
+    IThreadLogger::get().Log("Initialize ThreadPool - " + init_data.pool_name);
+
     auto new_pool = std::make_shared<ThreadPool>();
-    
+
     for (int32_t i = 0; i < init_data.numThreads; ++i)
     {
         auto worker_init_data = ThreadWorkerInitData();
-        auto create_result = ThreadWorkerBase::create(worker_init_data);
-        if (create_result.has_value())
+        if (auto new_worker = ThreadWorkerBase::create(worker_init_data))
         {
-            new_pool->add_worker(create_result.value());
-            auto start_result = create_result.value()->start();
+            new_pool->add_worker(new_worker);
+            auto start_result = new_worker->start();
+            
+            IThreadLogger::get().Verbose(std::format("ThreadPool:{} - Created worker {} with ID({})", init_data.pool_name, i, new_worker->get_id()));
+        }
+        else
+        {
+            _ASSERT_EXPR(false, "Couldn't create ThreadPool worker");
         }
     }
 

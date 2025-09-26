@@ -28,13 +28,14 @@ namespace threadpool
         ThreadWorkerBase& operator=(ThreadWorkerBase&& other) noexcept = delete;
         ~ThreadWorkerBase() override;
 
-        static std::expected<std::shared_ptr<ThreadWorkerBase>, std::string> create(ThreadWorkerInitData& init_data);
+        static std::shared_ptr<threadpool::ThreadWorkerBase> create(ThreadWorkerInitData& init_data);
         
         std::expected<bool, std::string> start() override;
         void stop() override;
         void stop_immediately();
 
-        virtual bool is_want_to_stop() const override;
+        std::thread::id get_id() const override;
+        bool is_want_to_stop() const override;
 
     private:
         virtual void initialize_on_main_thread();
@@ -46,9 +47,13 @@ namespace threadpool
         void deinitialize() override;
 
         ThreadEvent thread_event;
+        
         std::atomic<bool> b_running;
         std::atomic<bool> b_want_stop;
-        
+
+        void create_thread();
+        void destroy_thread();
         std::thread thread;
+        std::atomic<bool> b_exist_thread;
     };
 }
