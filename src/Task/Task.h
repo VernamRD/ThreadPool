@@ -15,68 +15,96 @@ namespace threadpool
         Normal = 1,
         Lowest = 2,
     };
-    
+
     class TaskBase
     {
-    public:
+    protected:
         TaskBase() = delete;
         TaskBase(const TaskBase& other) = delete;
         TaskBase& operator=(const TaskBase& other) = delete;
-        
+
         TaskBase(TaskBase&& other) noexcept = default;
         TaskBase& operator=(TaskBase&& other) noexcept = default;
 
         template <class TFunction, class... TArgs>
-        TaskBase(TFunction&& func, TArgs&&... args, std::source_location _context = std::source_location::current())
+        TaskBase(TFunction&& func, TArgs&&... args)
         {
             auto args_tuple = std::make_tuple(std::forward<TArgs>(args)...);
             auto func_copy = std::forward<TFunction>(func);
 
             executor = [func_copy, args_tuple]() -> void
             {
-                std::apply(func_copy, args_tuple); 
+                std::apply(func_copy, args_tuple);
             };
         }
 
-        std::future<void> get_future()
-        {
-            return promise.get_future();
-        }
-        
+    public:
         void execute()
         {
             executor();
             promise.set_value();
+        }
+        
+        std::future<void> get_future()
+        {
+            return promise.get_future();
         }
 
     private:
         std::promise<void> promise;
         std::function<void()> executor;
     };
-    
-    class Task
+
+    class Task;
+
+    class TaskHandle
     {
     public:
-        Task();
+        TaskHandle() = delete;
+
+        TaskHandle(Task* handled_task)
+            : task(handled_task) {}
+
+        std::future<void> get_future() const;
+        const Task* get_task() const;
+        bool is_stale() const;
+
+    private:
+        void reset();
+        Task* task;
+
+        friend Task;
+    };
+
+    typedef std::shared_ptr<threadpool::TaskHandle> TaskHandlePtr;
+
+    class Task : public TaskBase
+    {
+    public:
+        Task() = delete;
+        Task(const Task& other) = delete;
+        Task& operator=(const Task& other) = delete;
+
+        Task(Task&& other) noexcept = default;
+        Task& operator=(Task&& other) noexcept = default;
 
         template <class TFunction, class... TArgs>
-        void init_task(TFunction&& func, TArgs&&... args, threadpool::ETaskPriority task_priority, std::source_location _context = std::source_location::current())
+        Task(TFunction&& func, TArgs&&... args, const std::source_location current_context = std::source_location::current()) noexcept
+            : TaskBase(func, std::forward<TArgs>(args)...),
+              context(current_context)
         {
-            //std::make_unique<TaskBase>(std::forward<TFunction>(func), std::forward<TArgs>(args));
+            handle = std::make_unique<TaskHandle>(this);
         }
 
-        template <class TFunction, class... TArgs>
-        Task(TFunction&& func, TArgs&&... args, std::source_location _context = std::source_location::current())
+        ~Task()
         {
-            auto args_tuple = std::make_tuple(std::forward<TFunction>(func), std::forward<TArgs>(args)...);
-            auto func_copy = std::forward<TFunction>(func);
-
-            task = [func_copy, args_tuple]() -> std::any
-            {
-                return std::apply(func_copy, args_tuple); 
-            };
+            handle->reset();
         }
 
-        std::unique_ptr<TaskBase> task;
+        TaskHandlePtr get_handle() const { return handle; }
+
+    private:
+        std::source_location context;
+        TaskHandlePtr handle;
     };
 }

@@ -2,8 +2,6 @@ add_library(Pool STATIC
         ThreadPoolTypes.h
         ThreadPool.h
         ThreadPool.cpp
-        TaskPipe.cpp
-        TaskPipe.h
 )
 
 target_include_directories(Pool PUBLIC
