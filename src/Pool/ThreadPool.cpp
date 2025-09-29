@@ -49,8 +49,10 @@ void threadpool::ThreadPool::stop_all_immediately()
     }
 }
 
-bool threadpool::ThreadPool::is_in_pool(const std::thread::id thread_id) const
+bool threadpool::ThreadPool::is_in_pool() const
 {
+    const auto thread_id = std::this_thread::get_id();
+    
     for (const auto& worker : workers)
     {
         if (worker->get_id() == thread_id) return true;
