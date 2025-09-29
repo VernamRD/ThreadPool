@@ -2,10 +2,10 @@
 A library for using a thread pool to perform tasks with priorities and dependencies
 
 ## Dependence
-| C++       |         23 |
-|:----------|-----------:|
-| Toolchain |       MSVC |
-| CMake     |        4.0 |
+| C++        |             23 |
+|:-----------|---------------:|
+| Compiler   | MSVC \ Clang19 |
+| CMake      |           4.0+ |
 
 ## Log
 * Inherit and implement interface `ILogger` 

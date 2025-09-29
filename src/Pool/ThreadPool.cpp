@@ -20,11 +20,11 @@ std::shared_ptr<threadpool::IThreadPool> threadpool::ThreadPool::initialize(
             new_pool->add_worker(new_worker);
             auto start_result = new_worker->start();
 
-            LOG(Verbose, "ThreadPool:{} - Created worker {} with ID({})", init_data.pool_name, i, new_worker->get_id());
+            LOG(Verbose, "ThreadPool:{} - Created worker {} with name({})", init_data.pool_name, i, new_worker->get_name());
         }
         else
         {
-            _ASSERT_EXPR(false, "Couldn't create ThreadPool worker");
+            //_ASSERT_EXPR(false, "Couldn't create ThreadPool worker");
         }
     }
 

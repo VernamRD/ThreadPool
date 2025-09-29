@@ -59,5 +59,5 @@ namespace threadpool
     };
 
 #define LOG(Category, String, ...) \
-threadpool::LoggerManager::get_logger().log(threadpool::LogLevel::Category, std::format(String, __VA_ARGS__))
+threadpool::LoggerManager::get_logger().log(threadpool::LogLevel::Category, std::format(String, ##__VA_ARGS__))
 }

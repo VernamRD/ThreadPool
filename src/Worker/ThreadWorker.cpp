@@ -51,7 +51,7 @@ void threadpool::ThreadWorker::stop_immediately()
 
     if (b_running)
     {
-        LOG(Verbose, "ThreadWorker: Requested immediately stop for WorkerThread({})", thread.get_id());
+        LOG(Verbose, "ThreadWorker: Requested immediately stop for WorkerThread({})", data.worker_name);
     }
 
     destroy_thread();
@@ -95,19 +95,19 @@ void threadpool::ThreadWorker::run()
     bool b_initialized = initialize().value_or(false);
     if (!b_initialized)
     {
-        LOG(Verbose, "ThreadWorker: WorkerThread({}) couldn't initialized", thread.get_id());
+        LOG(Verbose, "ThreadWorker: WorkerThread({}) couldn't initialized", data.worker_name);
         return;
     }
 
     int32_t result = -1;
     if (!is_want_to_stop())
     {
-        LOG(Verbose, "ThreadWorker: WorkerThread({}) in run", thread.get_id());
+        LOG(Verbose, "ThreadWorker: WorkerThread({}) in run", data.worker_name);
 
         result = main();
     }
 
-    LOG(Verbose, "ThreadWorker: WorkerThread({}) complete with result: {}", thread.get_id(), result);
+    LOG(Verbose, "ThreadWorker: WorkerThread({}) complete with result: {}", data.worker_name, result);
 
     deinitialize();
 }
@@ -129,7 +129,7 @@ int32_t threadpool::ThreadWorker::main()
 
 void threadpool::ThreadWorker::deinitialize()
 {
-    LOG(Verbose, "ThreadWorker: WorkerThread({}) deinitializing", thread.get_id());
+    LOG(Verbose, "ThreadWorker: WorkerThread({}) deinitializing", data.worker_name);
     b_running = false;
     b_want_stop = false;
     
@@ -149,8 +149,7 @@ void threadpool::ThreadWorker::destroy_thread()
 {
     // _ASSERT_EXPR(b_exist_thread, "Attempted destroy not exist thread");
 
-    std::thread::id cached_thread_id = thread.get_id();
-    LOG(Verbose, "ThreadWorker: WorkerThread({}) destroying thread...", cached_thread_id);
+    LOG(Verbose, "ThreadWorker: WorkerThread({}) destroying thread...", data.worker_name);
 
     if (!is_want_to_stop())
     {
@@ -161,7 +160,7 @@ void threadpool::ThreadWorker::destroy_thread()
     if (thread.joinable())
     {
         thread.join();
-        LOG(Verbose, "ThreadWorker: WorkerThread({}) thread destroyed success", cached_thread_id);
+        LOG(Verbose, "ThreadWorker: WorkerThread({}) thread destroyed success", data.worker_name);
         b_exist_thread = false;
     }
 }
