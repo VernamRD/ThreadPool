@@ -22,7 +22,7 @@ namespace threadpool
         void stop_all() override;
         void stop_all_immediately() override;
         
-        bool is_in_pool() const override;
+        [[nodiscard]] bool is_in_pool() const override;
 
     private:
         void add_worker(const std::shared_ptr<ThreadWorker>& new_worker);

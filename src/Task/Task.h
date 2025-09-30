@@ -18,7 +18,7 @@ namespace threadpool
 
     class TaskBase
     {
-    protected:
+    public:
         TaskBase() = delete;
         TaskBase(const TaskBase& other) = delete;
         TaskBase& operator=(const TaskBase& other) = delete;
@@ -26,8 +26,9 @@ namespace threadpool
         TaskBase(TaskBase&& other) noexcept = default;
         TaskBase& operator=(TaskBase&& other) noexcept = default;
 
+    protected:
         template <class TFunction, class... TArgs>
-        TaskBase(TFunction&& func, TArgs&&... args)
+        explicit TaskBase(TFunction&& func, TArgs&&... args)
         {
             auto args_tuple = std::make_tuple(std::forward<TArgs>(args)...);
             auto func_copy = std::forward<TFunction>(func);
@@ -62,12 +63,12 @@ namespace threadpool
     public:
         TaskHandle() = delete;
 
-        TaskHandle(Task* handled_task)
+        explicit TaskHandle(Task* handled_task)
             : task(handled_task) {}
 
-        std::future<void> get_future() const;
-        const Task* get_task() const;
-        bool is_stale() const;
+        [[nodiscard]] std::future<void> get_future() const;
+        [[nodiscard]] const Task* get_task() const;
+        [[nodiscard]] bool is_stale() const;
 
     private:
         void reset();
@@ -89,7 +90,7 @@ namespace threadpool
         Task& operator=(Task&& other) noexcept = default;
 
         template <class TFunction, class... TArgs>
-        Task(TFunction&& func, TArgs&&... args, const std::source_location current_context = std::source_location::current()) noexcept
+        explicit Task(TFunction&& func, TArgs&&... args, const std::source_location current_context = std::source_location::current()) noexcept
             : TaskBase(func, std::forward<TArgs>(args)...),
               context(current_context)
         {
@@ -101,7 +102,7 @@ namespace threadpool
             handle->reset();
         }
 
-        TaskHandlePtr get_handle() const { return handle; }
+        [[nodiscard]] TaskHandlePtr get_handle() const { return handle; }
 
     private:
         std::source_location context;

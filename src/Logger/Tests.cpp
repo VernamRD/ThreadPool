@@ -14,34 +14,34 @@ void init_logger()
 TEST(LoggerTest, Verbose)
 {
     init_logger();
-    LOG(Verbose, "LoggerTest:Verbose");
-    LOG(Verbose, "LoggerTest:Verbose format{}{}{}", "Number", 147, 147.f);
+    LOG(Verbose, "LoggerTest:Verbose message");
+    LOG(Verbose, "LoggerTest:Verbose format {}:{}:{}", "Number", 147, 147.f);
 }
 
 TEST(LoggerTest, Info)
 {
     init_logger();
-    LOG(Info, "LoggerTest:Info");
-    LOG(Info, "LoggerTest:Info format{}{}{}", "Number", 147, 147.f);
+    LOG(Info, "LoggerTest:Info message");
+    LOG(Info, "LoggerTest:Info format {}:{}:{}", "Number", 147, 147.f);
 }
 
 TEST(LoggerTest, Log)
 {
     init_logger();
-    LOG(Log, "LoggerTest:Log");
-    LOG(Log, "LoggerTest:Log format{}{}{}", "Number", 147, 147.f);
+    LOG(Log, "LoggerTest:Log message");
+    LOG(Log, "LoggerTest:Log format {}:{}:{}", "Number", 147, 147.f);
 }
 
 TEST(LoggerTest, Warning)
 {
     init_logger();
-    LOG(Warning, "LoggerTest:Warning");
-    LOG(Warning, "LoggerTest:Warning format{}{}{}", "Number", 147, 147.f);
+    LOG(Warning, "LoggerTest:Warning message");
+    LOG(Warning, "LoggerTest:Warning format {}:{}:{}", "Number", 147, 147.f);
 }
 
 TEST(LoggerTest, Error)
 {
     init_logger();
-    LOG(Error, "LoggerTest:Error");
-    LOG(Error, "LoggerTest:Error format{}{}{}", "Number", 147, 147.f);
+    LOG(Error, "LoggerTest:Error message");
+    LOG(Error, "LoggerTest:Error format {}:{}:{}", "Number", 147, 147.f);
 }

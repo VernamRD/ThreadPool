@@ -47,7 +47,10 @@ void threadpool::ThreadWorker::stop()
 
 void threadpool::ThreadWorker::stop_immediately()
 {
-    // _ASSERT_EXPR(std::this_thread::get_id() != thread.get_id(), "Attempted stop_immediately from same thread"));
+    if (std::this_thread::get_id() == thread.get_id())
+    {
+        throw std::logic_error("Attempted stop_immediately from same thread");
+    }
 
     if (b_running)
     {
@@ -84,16 +87,21 @@ bool threadpool::ThreadWorker::is_exist_thread() const
 
 void threadpool::ThreadWorker::initialize_on_main_thread()
 {
-    // _ASSERT_EXPR(std::this_thread::get_id() != thread.get_id(),
-                 // "Attempted call initialize_on_main_thread when thread is null");
+    if (std::this_thread::get_id() == thread.get_id())
+    {
+        throw std::logic_error("Attempted call initialize_on_main_thread from thread worker thread");
+    }
 }
 
-void threadpool::ThreadWorker::run()
+void threadpool::ThreadWorker::run() noexcept
 {
     thread_event.wait();
 
-    bool b_initialized = initialize().value_or(false);
-    if (!b_initialized)
+    try
+    {
+        initialize();
+    }
+    catch (...)
     {
         LOG(Verbose, "ThreadWorker: WorkerThread({}) couldn't initialized", data.worker_name);
         return;
@@ -104,7 +112,14 @@ void threadpool::ThreadWorker::run()
     {
         LOG(Verbose, "ThreadWorker: WorkerThread({}) in run", data.worker_name);
 
-        result = main();
+        try
+        {
+            result = main();   
+        }
+        catch (std::runtime_error& error)
+        {
+            LOG(Error, "ThreadWorker: WorkerThread({}) error in main function: {}", data.worker_name, error.what());
+        }
     }
 
     LOG(Verbose, "ThreadWorker: WorkerThread({}) complete with result: {}", data.worker_name, result);
@@ -112,9 +127,9 @@ void threadpool::ThreadWorker::run()
     deinitialize();
 }
 
-std::expected<bool, std::string> threadpool::ThreadWorker::initialize()
+void threadpool::ThreadWorker::initialize()
 {
-    return true;
+    
 }
 
 int32_t threadpool::ThreadWorker::main()
@@ -132,12 +147,14 @@ void threadpool::ThreadWorker::deinitialize()
     LOG(Verbose, "ThreadWorker: WorkerThread({}) deinitializing", data.worker_name);
     b_running = false;
     b_want_stop = false;
-    
 }
 
 void threadpool::ThreadWorker::create_thread()
 {
-    // _ASSERT_EXPR(!b_exist_thread, "Attempted create thread when already exist");
+    if (b_exist_thread)
+    {
+        throw std::logic_error("Attempted create thread when already exist");   
+    }
 
     std::unique_lock lock(thread_mutex);
     thread = std::thread(&ThreadWorker::run, this);
@@ -145,9 +162,9 @@ void threadpool::ThreadWorker::create_thread()
     b_exist_thread = true;
 }
 
-void threadpool::ThreadWorker::destroy_thread()
+void threadpool::ThreadWorker::destroy_thread() noexcept
 {
-    // _ASSERT_EXPR(b_exist_thread, "Attempted destroy not exist thread");
+    if (!b_exist_thread) return;
 
     LOG(Verbose, "ThreadWorker: WorkerThread({}) destroying thread...", data.worker_name);
 

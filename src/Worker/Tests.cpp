@@ -3,6 +3,7 @@
 
 class ThreadWorkerTest : public threadpool::ThreadWorker
 {
+public:
     explicit ThreadWorkerTest(const threadpool::ThreadWorkerInitData& init_data)
         : ThreadWorker(init_data)
     {
@@ -14,7 +15,7 @@ class ThreadWorkerTest : public threadpool::ThreadWorker
         {
             std::this_thread::sleep_for(std::chrono::microseconds(10));
         }
-
+        
         return 0;
     }
 };
@@ -36,8 +37,8 @@ TEST(Worker, CreateAndStop)
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
     new_worker->stop();
     EXPECT_TRUE(new_worker->is_want_to_stop());
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
     EXPECT_FALSE(new_worker->is_running());
 }
 

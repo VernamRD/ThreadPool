@@ -23,8 +23,8 @@ namespace threadpool
             : _task(task),
               _priority(priority) {}
 
-        ConstTaskPtr task() const { return _task; }
-        ETaskPriority priority() const { return _priority; }
+        [[nodiscard]] ConstTaskPtr task() const { return _task; }
+        [[nodiscard]] ETaskPriority priority() const { return _priority; }
 
     private:
         ConstTaskPtr _task;
@@ -36,16 +36,32 @@ namespace threadpool
     class TaskPipe
     {
     public:
-        std::shared_ptr<TaskHandle> add_task(ETaskPriority task_priority, std::unique_ptr<threadpool::Task>&& task);
+        std::shared_ptr<TaskHandle> add_task(ETaskPriority task_priority, std::unique_ptr<threadpool::Task>&& task) noexcept;
 
-        void do_job_until_task_exists();
+        void do_job_until_task_exists()
+        {
+            TaskContext context;
+            while (auto task = pop_relevant_task(context))
+            {
+                set_context(context);
+                task->execute();
+            }
+        }
 
-        template <class _Rep, class _Period>
-        void do_job(std::chrono::duration<_Rep, _Period> duration = std::chrono::milliseconds(10)) {}
+        template <class Rep, class Period>
+        void do_job(std::chrono::duration<Rep, Period> duration = std::chrono::milliseconds(10))
+        {
+            TaskContext context;
+            while (auto task = pop_relevant_task(context))
+            {
+                set_context(context);
+                task->execute();
+            }
+        }
 
     private:
-        void set_context(const TaskContext& context);
-        TaskPtr pop_relevant_task(TaskContext& context);
+        static void set_context(const TaskContext& context) noexcept;
+        TaskPtr pop_relevant_task(TaskContext& context) noexcept;
 
         std::shared_mutex mutex;
         std::map<ETaskPriority, std::vector<TaskPtr>> tasks;

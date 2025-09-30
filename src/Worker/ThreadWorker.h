@@ -3,8 +3,6 @@
 #include <atomic>
 #include <memory>
 #include <thread>
-#include <vector>
-#include <expected>
 #include <shared_mutex>
 
 #include "IThreadWorker.h"
@@ -52,9 +50,9 @@ namespace threadpool
     private:
         virtual void initialize_on_main_thread();
         
-        void run();
+        void run() noexcept;
         
-        std::expected<bool, std::string> initialize() override;
+        void initialize() override;
         int32_t main() override;
         void deinitialize() override;
 
@@ -66,7 +64,7 @@ namespace threadpool
         std::atomic<bool> b_want_stop;
 
         void create_thread();
-        void destroy_thread();
+        void destroy_thread() noexcept;
         std::mutex thread_mutex;
         std::thread thread;
         std::atomic<bool> b_exist_thread;

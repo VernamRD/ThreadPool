@@ -20,6 +20,6 @@ namespace threadpool
         virtual void stop_all() = 0;
         virtual void stop_all_immediately() = 0;
 
-        virtual bool is_in_pool() const = 0;
+        [[nodiscard]] virtual bool is_in_pool() const = 0;
     };
 }

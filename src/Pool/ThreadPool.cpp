@@ -1,5 +1,7 @@
 #include "ThreadPool.h"
 
+#include <algorithm>
+#include <assert.h>
 #include <format>
 
 #include "ILogger.h"
@@ -18,13 +20,13 @@ std::shared_ptr<threadpool::IThreadPool> threadpool::ThreadPool::initialize(
         if (auto new_worker = ThreadWorker::create(worker_init_data))
         {
             new_pool->add_worker(new_worker);
-            auto start_result = new_worker->start();
+            new_worker->start();
 
             LOG(Verbose, "ThreadPool:{} - Created worker {} with name({})", init_data.pool_name, i, new_worker->get_name());
         }
         else
         {
-            //_ASSERT_EXPR(false, "Couldn't create ThreadPool worker");
+            LOG(Warning, "ThreadPool:{} - couldn't create worker by index {}", init_data.pool_name, i);
         }
     }
 
@@ -52,13 +54,11 @@ void threadpool::ThreadPool::stop_all_immediately()
 bool threadpool::ThreadPool::is_in_pool() const
 {
     const auto thread_id = std::this_thread::get_id();
-    
-    for (const auto& worker : workers)
-    {
-        if (worker->get_id() == thread_id) return true;
-    }
 
-    return false;
+    return std::ranges::any_of(workers, [&thread_id](const auto& worker)
+    {
+        return worker->get_id() == thread_id;
+    });
 }
 
 void threadpool::ThreadPool::add_worker(const std::shared_ptr<ThreadWorker>& new_worker)
