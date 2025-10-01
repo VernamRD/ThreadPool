@@ -51,17 +51,27 @@ namespace threadpool
         template <class Rep, class Period>
         void do_job(std::chrono::duration<Rep, Period> duration = std::chrono::milliseconds(10))
         {
+            auto start_point = std::chrono::system_clock::now();
+            
             TaskContext context;
-            while (auto task = pop_relevant_task(context))
+            while (std::chrono::system_clock::now() - start_point < duration)
             {
-                set_context(context);
-                task->execute();
+                auto task = pop_relevant_task(context);
+                if (task)
+                {
+                    set_context(context);
+                    task->execute();   
+                }
+                else
+                {
+                    std::this_thread::sleep_for(std::chrono::microseconds(50));   
+                }
             }
         }
 
     private:
         static void set_context(const TaskContext& context) noexcept;
-        TaskPtr pop_relevant_task(TaskContext& context) noexcept;
+        [[nodiscard]] TaskPtr pop_relevant_task(TaskContext& context) noexcept;
 
         std::shared_mutex mutex;
         std::map<ETaskPriority, std::vector<TaskPtr>> tasks;

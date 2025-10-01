@@ -20,16 +20,65 @@ TEST(Task, CreateAndExecute)
 TEST(Pipe, Execute)
 {
     threadpool::TaskPipe pipe;
+    
+    constexpr int32_t task_count = 100;
+    std::array<bool, task_count> task_complete{};
 
-    bool b_executed_task = false;
-    pipe.add_task(threadpool::ETaskPriority::Normal, std::make_unique<threadpool::Task>([&b_executed_task]()
+    for (int32_t i = 0; i < task_count; ++i)
     {
-        b_executed_task = true;
-    }));
+        pipe.add_task(threadpool::ETaskPriority::Normal, std::make_unique<threadpool::Task>([i, &task_complete]()
+       {
+           task_complete[i] = true;
+       }));   
+    }
 
-    EXPECT_FALSE(b_executed_task);
+    for (int32_t i = 0; i < task_count; ++i)
+    {
+        EXPECT_FALSE(task_complete[i]);   
+    }
+
     pipe.do_job_until_task_exists();
-    EXPECT_TRUE(b_executed_task);
+    
+    for (int32_t i = 0; i < task_count; ++i)
+    {
+        EXPECT_TRUE(task_complete[i]);   
+    }
+}
+
+TEST(Pipe, ExecuteForTime)
+{
+    threadpool::TaskPipe pipe;
+
+    constexpr int32_t task_count = 50;
+    std::array<bool, task_count> task_complete{};
+
+    constexpr std::chrono::milliseconds task_sleep_time(2);
+    constexpr std::chrono::milliseconds job_time(10);
+    constexpr int32_t expected_complete_task_count = job_time / task_sleep_time;
+
+    for (int32_t i = 0; i < task_count; ++i)
+    {
+        pipe.add_task(threadpool::ETaskPriority::Normal, std::make_unique<threadpool::Task>([i, &task_complete, task_sleep_time]()
+       {
+           task_complete[i] = true;
+           std::this_thread::sleep_for(task_sleep_time);
+       }));   
+    }
+
+    for (int32_t i = 0; i < task_count; ++i)
+    {
+        EXPECT_FALSE(task_complete[i]);
+    }
+    
+    pipe.do_job(job_time);
+
+    int32_t complete_count = 0;
+    for (int32_t i = 0; i < task_count; ++i)
+    {
+        complete_count += task_complete[i] ? 1 : 0;
+    }
+    
+    EXPECT_TRUE(complete_count <= expected_complete_task_count);
 }
 
 TEST(Pipe, ExecutePriority)
