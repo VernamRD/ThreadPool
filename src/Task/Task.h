@@ -26,9 +26,12 @@ namespace threadpool
         TaskBase(TaskBase&& other) noexcept = default;
         TaskBase& operator=(TaskBase&& other) noexcept = default;
 
+        [[nodiscard]] bool is_completed() { return b_completed; }
+
     protected:
         template <class TFunction, class... TArgs>
         explicit TaskBase(TFunction&& func, TArgs&&... args)
+            : b_completed(false)
         {
             auto args_tuple = std::make_tuple(std::forward<TArgs>(args)...);
             auto func_copy = std::forward<TFunction>(func);
@@ -43,6 +46,7 @@ namespace threadpool
         void execute()
         {
             executor();
+            b_completed = true;
             promise.set_value();
         }
         
@@ -52,6 +56,7 @@ namespace threadpool
         }
 
     private:
+        std::atomic<bool> b_completed;
         std::promise<void> promise;
         std::function<void()> executor;
     };
@@ -68,7 +73,9 @@ namespace threadpool
 
         [[nodiscard]] std::future<void> get_future() const;
         [[nodiscard]] const Task* get_task() const;
+        [[nodiscard]] bool is_valid() const;
         [[nodiscard]] bool is_stale() const;
+        [[nodiscard]] bool is_completed() const;
 
     private:
         void reset();

@@ -66,7 +66,7 @@ void threadpool::ThreadWorker::stop_immediately()
 
 void threadpool::ThreadWorker::set_pause(bool b_set_pause)
 {
-    b_pause = true;
+    b_pause = b_set_pause;
 }
 
 std::thread::id threadpool::ThreadWorker::get_id() const

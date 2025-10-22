@@ -18,7 +18,33 @@ std::shared_ptr<threadpool::TaskHandle> threadpool::TaskPipe::add_task(threadpoo
     std::unique_lock tasks_lock(tasks_mutex);
     auto cached_handle = task->get_handle();
     tasks[task_priority].push_back(std::forward<TaskPtr>(std::move(task)));
+    
+    // Count task
+    ++tasks_count;
+    
     return cached_handle;
+}
+
+int32_t threadpool::TaskPipe::get_tasks_all_count() const noexcept
+{
+    return get_tasks_pending_count() + get_tasks_in_progress_count();
+}
+
+int32_t threadpool::TaskPipe::get_tasks_in_progress_count() const noexcept
+{
+    std::shared_lock lock(tasks_mutex);
+
+    std::erase_if(tasks_in_progress, [](const TaskHandlePtr& handle)
+    {
+        return handle == nullptr || handle->is_stale() || handle->is_completed();
+    });
+
+    return static_cast<int32_t>(tasks_in_progress.size());
+}
+
+int32_t threadpool::TaskPipe::get_tasks_pending_count() const noexcept
+{
+    return tasks_count;
 }
 
 void threadpool::TaskPipe::set_context(const TaskContext& context) noexcept
@@ -50,5 +76,9 @@ threadpool::TaskPtr threadpool::TaskPipe::pop_relevant_task(TaskContext& context
 
     context._task = task;
 
+    // Count task
+    --tasks_count;
+    tasks_in_progress.push_back(task->get_handle());
+    
     return std::move(task);
 }

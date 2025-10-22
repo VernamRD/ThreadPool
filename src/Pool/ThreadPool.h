@@ -26,14 +26,21 @@ namespace threadpool
         void stop_all() override;
         void stop_all_immediately() override;
 
+        void pause_all() override;
+        void unpause_all() override;
+        bool is_paused() const override;
+
         void set_pipe(std::shared_ptr<TaskPipe> new_task_pipe) override;
         [[nodiscard]] std::shared_lock<std::shared_mutex> get_pipe(std::shared_ptr<TaskPipe>& pipe_ptr) const override;
-        
+
+        [[nodiscard]] bool is_in_pool() const { return is_in_pool(std::this_thread::get_id()); }
         [[nodiscard]] bool is_in_pool(std::thread::id thread_id) const override;
         [[nodiscard]] int32_t get_worker_id(std::thread::id id) const override;
 
     private:
         void add_worker(const std::shared_ptr<ThreadWorker>& new_worker);
+
+        std::atomic<bool> b_paused;
 
         mutable std::shared_mutex pipe_mutex;
         std::shared_ptr<TaskPipe> pipe;

@@ -78,11 +78,17 @@ namespace threadpool
             }
         }
 
+        [[nodiscard]] int32_t get_tasks_all_count() const noexcept;
+        [[nodiscard]] int32_t get_tasks_in_progress_count() const noexcept;
+        [[nodiscard]] int32_t get_tasks_pending_count() const noexcept;
+
     private:
         static void set_context(const TaskContext& context) noexcept;
         [[nodiscard]] TaskPtr pop_relevant_task(TaskContext& context) noexcept;
         
-        std::shared_mutex tasks_mutex;
+        mutable std::shared_mutex tasks_mutex;
+        int32_t tasks_count;
+        mutable std::vector<TaskHandlePtr> tasks_in_progress;
         std::map<ETaskPriority, std::vector<TaskPtr>> tasks;
     };
 }

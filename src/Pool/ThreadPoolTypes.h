@@ -28,6 +28,13 @@ namespace threadpool
         /** Request stop all workers in pool. @remark Calling thread will wait for each of the workers to stop. */
         virtual void stop_all_immediately() = 0;
 
+        /** Pause all workers. Tasks in execution wiil be completed, other not be to start proceeded */
+        virtual void pause_all() = 0;
+        /** Return working in normal mode */
+        virtual void unpause_all() = 0;
+        /** @return True if pool and workers sleep */
+        [[nodiscard]] virtual bool is_paused() const = 0; 
+
         virtual void set_pipe(std::shared_ptr<TaskPipe> new_task_pipe) = 0;
         [[nodiscard]] virtual std::shared_lock<std::shared_mutex> get_pipe(std::shared_ptr<TaskPipe>& pipe_ptr) const = 0;
         

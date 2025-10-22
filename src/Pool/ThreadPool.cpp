@@ -66,6 +66,33 @@ void threadpool::ThreadPool::stop_all_immediately()
     }
 }
 
+void threadpool::ThreadPool::pause_all()
+{
+    if (is_paused()) return;
+
+    b_paused = true;
+    for (const auto& worker : workers)
+    {
+        worker->set_pause(b_paused);
+    }
+}
+
+void threadpool::ThreadPool::unpause_all()
+{
+    if (!is_paused()) return;
+
+    b_paused = false;
+    for (const auto& worker : workers)
+    {
+        worker->set_pause(b_paused);
+    }
+}
+
+bool threadpool::ThreadPool::is_paused() const
+{
+    return b_paused;
+}
+
 void threadpool::ThreadPool::set_pipe(std::shared_ptr<TaskPipe> new_task_pipe)
 {
     std::unique_lock pipe_lock(pipe_mutex);

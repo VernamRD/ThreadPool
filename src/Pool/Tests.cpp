@@ -21,9 +21,59 @@ TEST(Pool, Initialize_4_And_Stop)
     pool->stop_all_immediately();
 }
 
+TEST(Pool, Create_4_Tasks_10_With_Pause)
+{
+    constexpr int32_t num_workers = 4;
+    constexpr int32_t num_tasks_per_worker = 10;
+    constexpr int32_t total_task_count = num_workers * num_tasks_per_worker;
+
+    auto pool = create_and_start_thread_pool(num_workers);
+
+    auto pipe = std::make_shared<threadpool::TaskPipe>();
+    pool->set_pipe(pipe);
+    
+    pool->pause_all();
+
+    std::array<int32_t, num_workers> completed_tasks{};
+
+    for (int32_t worker_i = 0; worker_i < num_workers; ++worker_i)
+    {
+        for (int32_t task_i = 0; task_i < num_tasks_per_worker; ++task_i)
+        {
+            EXPECT_EQ(completed_tasks[worker_i], 0);
+        }
+    }
+
+    for (int32_t worker_i = 0; worker_i < num_workers; ++worker_i)
+    {
+        for (int32_t task_i = 0; task_i < num_tasks_per_worker; ++task_i)
+        {
+            pipe->add_task(threadpool::ETaskPriority::Normal, [&pool, task_i, &completed_tasks]()
+            {
+                ++completed_tasks[pool->get_worker_id(std::this_thread::get_id())];
+            });
+        }
+    }
+
+    EXPECT_TRUE(pool->is_paused());
+    EXPECT_EQ(pipe->get_tasks_all_count(), total_task_count);
+    EXPECT_EQ(pipe->get_tasks_pending_count(), total_task_count);
+    EXPECT_EQ(pipe->get_tasks_in_progress_count(), 0);
+    pool->unpause_all();
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    int32_t completed_tasks_count = 0;
+    for (int32_t worker_i = 0; worker_i < num_workers; ++worker_i)
+    {
+        completed_tasks_count += completed_tasks[worker_i];
+    }
+
+    EXPECT_EQ(completed_tasks_count, total_task_count);
+}
+
 TEST(Pool, Create_16_Tasks_100)
 {
-    constexpr int32_t num_workers = 1;
+    constexpr int32_t num_workers = 16;
     constexpr int32_t num_tasks_per_worker = 100;
     constexpr int32_t total_task_count = num_workers * num_tasks_per_worker;
 
