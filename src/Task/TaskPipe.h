@@ -11,7 +11,7 @@ namespace threadpool
 {
     using TaskPtr = std::shared_ptr<Task>;
     using ConstTaskPtr = std::shared_ptr<const Task>;
-    
+
     class TaskContext
     {
     public:
@@ -39,10 +39,12 @@ namespace threadpool
     {
     public:
         TaskPipe();
-        
+
         std::shared_ptr<TaskHandle> add_task(ETaskPriority task_priority, std::unique_ptr<threadpool::Task>&& task) noexcept;
+
         template <class TFunction, class... TArgs>
-        std::shared_ptr<TaskHandle> add_task(ETaskPriority task_priority, TFunction&& func, TArgs&&... args,  const std::source_location current_context = std::source_location::current()) noexcept
+        std::shared_ptr<TaskHandle> add_task(ETaskPriority task_priority, TFunction&& func, TArgs&&... args,
+            const std::source_location current_context = std::source_location::current()) noexcept
         {
             return add_task(task_priority, std::make_unique<threadpool::Task>(func, args..., current_context));
         }
@@ -61,7 +63,7 @@ namespace threadpool
         void do_job(std::chrono::duration<Rep, Period> duration = std::chrono::milliseconds(10))
         {
             auto start_point = std::chrono::system_clock::now();
-            
+
             TaskContext context;
             while (std::chrono::system_clock::now() - start_point < duration)
             {
@@ -69,12 +71,25 @@ namespace threadpool
                 if (task)
                 {
                     set_context(context);
-                    task->execute();   
+                    task->execute();
                 }
                 else
                 {
-                    std::this_thread::sleep_for(std::chrono::microseconds(50));   
+                    constexpr std::chrono::microseconds pipe_worker_wait_time_for_new_job(50);
+                    std::this_thread::sleep_for(pipe_worker_wait_time_for_new_job);
                 }
+            }
+        }
+
+        template <class Rep, class Period>
+        void wait_until_task_exists(std::chrono::duration<Rep, Period> duration = std::chrono::seconds(1))
+        {
+            constexpr std::chrono::microseconds pipe_wait_test_tasks_exist(50);
+
+            auto start_point = std::chrono::system_clock::now();
+            while (std::chrono::system_clock::now() - start_point < duration && get_tasks_all_count() > 0)
+            {
+                std::this_thread::sleep_for(pipe_wait_test_tasks_exist);
             }
         }
 
@@ -85,7 +100,7 @@ namespace threadpool
     private:
         static void set_context(const TaskContext& context) noexcept;
         [[nodiscard]] TaskPtr pop_relevant_task(TaskContext& context) noexcept;
-        
+
         mutable std::shared_mutex tasks_mutex;
         int32_t tasks_count;
         mutable std::vector<TaskHandlePtr> tasks_in_progress;

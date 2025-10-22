@@ -36,7 +36,7 @@ int32_t threadpool::TaskPipe::get_tasks_in_progress_count() const noexcept
 
     std::erase_if(tasks_in_progress, [](const TaskHandlePtr& handle)
     {
-        return handle == nullptr || handle->is_stale() || handle->is_completed();
+        return handle == nullptr || handle->is_completed();
     });
 
     return static_cast<int32_t>(tasks_in_progress.size());

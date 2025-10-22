@@ -60,7 +60,7 @@ TEST(Pool, Create_4_Tasks_10_With_Pause)
     EXPECT_EQ(pipe->get_tasks_pending_count(), total_task_count);
     EXPECT_EQ(pipe->get_tasks_in_progress_count(), 0);
     pool->unpause_all();
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    pipe->wait_until_task_exists(std::chrono::seconds(1));
 
     int32_t completed_tasks_count = 0;
     for (int32_t worker_i = 0; worker_i < num_workers; ++worker_i)
@@ -68,6 +68,9 @@ TEST(Pool, Create_4_Tasks_10_With_Pause)
         completed_tasks_count += completed_tasks[worker_i];
     }
 
+    EXPECT_EQ(pipe->get_tasks_all_count(), 0);
+    EXPECT_EQ(pipe->get_tasks_pending_count(), 0);
+    EXPECT_EQ(pipe->get_tasks_in_progress_count(), 0);
     EXPECT_EQ(completed_tasks_count, total_task_count);
 }
 
@@ -103,7 +106,50 @@ TEST(Pool, Create_16_Tasks_100)
         }
     }
 
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    pipe->wait_until_task_exists(std::chrono::seconds(1));
+
+    int32_t completed_tasks_count = 0;
+    for (int32_t worker_i = 0; worker_i < num_workers; ++worker_i)
+    {
+        completed_tasks_count += completed_tasks[worker_i];
+    }
+
+    EXPECT_EQ(completed_tasks_count, total_task_count);
+}
+
+TEST(Pool, Create_32_Tasks_1000)
+{
+    constexpr int32_t num_workers = 32;
+    constexpr int32_t num_tasks_per_worker = 1000;
+    constexpr int32_t total_task_count = num_workers * num_tasks_per_worker;
+
+    auto pool = create_and_start_thread_pool(num_workers);
+
+    auto pipe = std::make_shared<threadpool::TaskPipe>();
+    pool->set_pipe(pipe);
+
+    std::array<int32_t, num_workers> completed_tasks{};
+
+    for (int32_t worker_i = 0; worker_i < num_workers; ++worker_i)
+    {
+        for (int32_t task_i = 0; task_i < num_tasks_per_worker; ++task_i)
+        {
+            EXPECT_EQ(completed_tasks[worker_i], 0);
+        }
+    }
+
+    for (int32_t worker_i = 0; worker_i < num_workers; ++worker_i)
+    {
+        for (int32_t task_i = 0; task_i < num_tasks_per_worker; ++task_i)
+        {
+            pipe->add_task(threadpool::ETaskPriority::Normal, [&pool, task_i, &completed_tasks]()
+            {
+                ++completed_tasks[pool->get_worker_id(std::this_thread::get_id())];
+            });
+        }
+    }
+
+    pipe->wait_until_task_exists(std::chrono::seconds(5));
 
     int32_t completed_tasks_count = 0;
     for (int32_t worker_i = 0; worker_i < num_workers; ++worker_i)

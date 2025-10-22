@@ -22,7 +22,7 @@ bool threadpool::TaskHandle::is_stale() const
 
 bool threadpool::TaskHandle::is_completed() const
 {
-    return is_stale() && task->is_completed();
+    return is_stale() || task->is_completed();
 }
 
 void threadpool::TaskHandle::reset()
