@@ -4,13 +4,17 @@
 #include <shared_mutex>
 
 #include "ILogger.h"
+#include "TaskPipe.h"
+#include "../Pool/ThreadPoolTypes.h"
 
 threadpool::ThreadWorker::ThreadWorker(const ThreadWorkerInitData& init_data)
     : b_running(false),
       b_want_stop(false),
-      b_exist_thread(false)
+      b_exist_thread(false),
+      b_pause(false)
 {
     data.worker_name = init_data.worker_name;
+    data.owner_pool = init_data.owner_pool;
 }
 
 threadpool::ThreadWorker::~ThreadWorker()
@@ -60,6 +64,11 @@ void threadpool::ThreadWorker::stop_immediately()
     destroy_thread();
 }
 
+void threadpool::ThreadWorker::set_pause(bool b_set_pause)
+{
+    b_pause = true;
+}
+
 std::thread::id threadpool::ThreadWorker::get_id() const
 {
     return data.thread_id;
@@ -83,6 +92,11 @@ bool threadpool::ThreadWorker::is_want_to_stop() const
 bool threadpool::ThreadWorker::is_exist_thread() const
 {
     return b_exist_thread;
+}
+
+bool threadpool::ThreadWorker::is_paused() const
+{
+    return b_pause;
 }
 
 void threadpool::ThreadWorker::initialize_on_main_thread()
@@ -114,7 +128,7 @@ void threadpool::ThreadWorker::run() noexcept
 
         try
         {
-            result = main();   
+            result = main();
         }
         catch (std::runtime_error& error)
         {
@@ -127,16 +141,33 @@ void threadpool::ThreadWorker::run() noexcept
     deinitialize();
 }
 
-void threadpool::ThreadWorker::initialize()
-{
-    
-}
+void threadpool::ThreadWorker::initialize() {}
 
 int32_t threadpool::ThreadWorker::main()
 {
+    constexpr auto sleep_time = std::chrono::milliseconds(THREAD_WORKER_SLEEP_TIME_MS);
+
     while (!is_want_to_stop())
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        if (is_paused())
+        {
+            std::this_thread::sleep_for(sleep_time);
+            continue;
+        }
+
+        if (data.owner_pool)
+        {
+            // Catch pipe
+            std::shared_ptr<threadpool::TaskPipe> pipe;
+            auto pipe_lock = data.owner_pool->get_pipe(pipe);
+
+            if (pipe)
+            {
+                pipe->do_job_until_task_exists();   
+            }   
+        }
+        
+        std::this_thread::sleep_for(sleep_time);
     }
 
     return 0;
@@ -153,7 +184,7 @@ void threadpool::ThreadWorker::create_thread()
 {
     if (b_exist_thread)
     {
-        throw std::logic_error("Attempted create thread when already exist");   
+        throw std::logic_error("Attempted create thread when already exist");
     }
 
     std::unique_lock lock(thread_mutex);

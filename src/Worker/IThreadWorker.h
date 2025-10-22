@@ -13,6 +13,7 @@ namespace threadpool
         
         virtual bool start() = 0;
         virtual void stop() = 0;
+        virtual void set_pause(bool b_set_pause) = 0;
 
         [[nodiscard]] virtual std::thread::id get_id() const = 0;
         [[nodiscard]] virtual std::string get_name() const = 0;
@@ -20,6 +21,7 @@ namespace threadpool
         [[nodiscard]] virtual bool is_running() const = 0;
         [[nodiscard]] virtual bool is_want_to_stop() const = 0;
         [[nodiscard]] virtual bool is_exist_thread() const = 0;
+        [[nodiscard]] virtual bool is_paused() const = 0;
 
     protected:
         virtual void initialize() = 0;

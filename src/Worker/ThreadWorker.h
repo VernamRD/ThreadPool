@@ -8,17 +8,23 @@
 #include "IThreadWorker.h"
 #include "Event.h"
 
+namespace threadpool {
+    class IThreadPool;
+}
+
 namespace threadpool
 {
     struct ThreadWorkerInitData
     {
         std::string worker_name;
+        std::shared_ptr<IThreadPool> owner_pool;
     };
 
     struct ThreadWorkerData
     {
         std::string worker_name;
         std::thread::id thread_id;
+        std::shared_ptr<IThreadPool> owner_pool;
     };
     
     class ThreadWorker : public IThreadWorker
@@ -39,6 +45,7 @@ namespace threadpool
         bool start() override;
         void stop() override;
         void stop_immediately();
+        void set_pause(bool b_set_pause) override;
 
         std::thread::id get_id() const override;
         std::string get_name() const override;
@@ -46,6 +53,7 @@ namespace threadpool
         bool is_running() const override;
         bool is_want_to_stop() const override;
         bool is_exist_thread() const override;
+        bool is_paused() const override;
 
     private:
         virtual void initialize_on_main_thread();
@@ -62,6 +70,7 @@ namespace threadpool
         
         std::atomic<bool> b_running;
         std::atomic<bool> b_want_stop;
+        std::atomic<bool> b_pause;
 
         void create_thread();
         void destroy_thread() noexcept;

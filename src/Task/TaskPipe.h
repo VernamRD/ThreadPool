@@ -3,6 +3,8 @@
 #include <map>
 #include <shared_mutex>
 #include <memory>
+#include <set>
+
 #include "Task.h"
 
 namespace threadpool
@@ -36,7 +38,14 @@ namespace threadpool
     class TaskPipe
     {
     public:
+        TaskPipe();
+        
         std::shared_ptr<TaskHandle> add_task(ETaskPriority task_priority, std::unique_ptr<threadpool::Task>&& task) noexcept;
+        template <class TFunction, class... TArgs>
+        std::shared_ptr<TaskHandle> add_task(ETaskPriority task_priority, TFunction&& func, TArgs&&... args,  const std::source_location current_context = std::source_location::current()) noexcept
+        {
+            return add_task(task_priority, std::make_unique<threadpool::Task>(func, args..., current_context));
+        }
 
         void do_job_until_task_exists()
         {
@@ -72,8 +81,8 @@ namespace threadpool
     private:
         static void set_context(const TaskContext& context) noexcept;
         [[nodiscard]] TaskPtr pop_relevant_task(TaskContext& context) noexcept;
-
-        std::shared_mutex mutex;
+        
+        std::shared_mutex tasks_mutex;
         std::map<ETaskPriority, std::vector<TaskPtr>> tasks;
     };
 }

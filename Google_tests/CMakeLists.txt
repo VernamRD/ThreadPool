@@ -7,6 +7,7 @@ add_executable(Google_Tests_run
         ../src/Event/Tests.cpp
         ../src/Logger/Tests.cpp
         ../src/Worker/Tests.cpp
-        ../src/Task/Tests.cpp)
+        ../src/Task/Tests.cpp
+        ../src/Pool/Tests.cpp)
 
-target_link_libraries(Google_Tests_run gtest gtest_main Event Logger Worker Task)
+target_link_libraries(Google_Tests_run gtest gtest_main Pool)
