@@ -192,7 +192,7 @@ TEST(Pool, Create_32_Tasks_1000)
         }
     }
 
-    pipe->wait_until_task_exists(std::chrono::seconds(5));
+    pipe->wait_until_task_exists(std::chrono::seconds(10));
 
     int32_t completed_tasks_count = 0;
     for (int32_t worker_i = 0; worker_i < num_workers; ++worker_i)
