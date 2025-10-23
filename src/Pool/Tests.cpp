@@ -21,6 +21,49 @@ TEST(Pool, Initialize_4_And_Stop)
     pool->stop_all_immediately();
 }
 
+TEST(Pool, Multithread_Approve)
+{
+    constexpr int32_t num_workers = 16;
+    constexpr int32_t num_tasks_per_worker = 50;
+    auto pool = create_and_start_thread_pool(num_workers);
+
+    auto pipe = std::make_shared<threadpool::TaskPipe>();
+    pool->set_pipe(pipe);
+    pool->pause_all();
+
+    std::mutex mutex;
+    std::atomic<bool> b_multithread_access(false);
+
+    constexpr std::chrono::milliseconds sleep_time = std::chrono::milliseconds(1);
+    constexpr 
+    std::chrono::milliseconds expected_work_time = sleep_time * num_tasks_per_worker * 2;
+    
+    for (int32_t worker_i = 0; worker_i < num_workers; ++worker_i)
+    {
+        for (int32_t task_i = 0; task_i < num_tasks_per_worker; ++task_i)
+        {
+            pipe->add_task(threadpool::ETaskPriority::Normal, [&sleep_time, &pool, task_i, &mutex, &b_multithread_access]()
+            {
+                std::unique_lock lock(mutex, std::defer_lock);
+                
+                bool b_not_locked = !lock.try_lock();
+                if (b_not_locked)
+                {
+                    b_multithread_access.store(b_multithread_access.load() || b_not_locked);
+                }
+                
+                std::this_thread::sleep_for(sleep_time);
+            });
+        }
+    }
+
+    auto current_time = std::chrono::system_clock::now();
+    pool->unpause_all();
+    pipe->wait_until_task_exists(std::chrono::seconds(1));
+    EXPECT_TRUE(b_multithread_access);
+    EXPECT_LT(std::chrono::system_clock::now() - current_time, expected_work_time);
+}
+
 TEST(Pool, Create_4_Tasks_10_With_Pause)
 {
     constexpr int32_t num_workers = 4;
